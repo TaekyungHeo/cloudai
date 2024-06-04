@@ -127,7 +127,7 @@ class BaseInstaller:
 
         all_success = all(result == "Success" for result in install_results.values())
         if all_success:
-            return InstallStatusResult(True, "All test templates installed successfully.")
+            return InstallStatusResult(True, "All test templates installed successfully.", install_results)
         else:
             return InstallStatusResult(False, "Some test templates failed to install.", install_results)
 
@@ -159,6 +159,6 @@ class BaseInstaller:
 
         all_success = all(result == "Success" for result in uninstall_results.values())
         if all_success:
-            return InstallStatusResult(True, "All test templates uninstalled successfully.")
+            return InstallStatusResult(True, "All test templates uninstalled successfully.", uninstall_results)
         else:
             return InstallStatusResult(False, "Some test templates failed to uninstall.", uninstall_results)
