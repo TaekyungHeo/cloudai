@@ -16,16 +16,16 @@
 
 from typing import Any, Dict, List
 
-from cloudai.systems.slurm.strategy import SlurmCommandGenStrategy
+from cloudai.systems.slurm.strategy import SlurmJobSpecGenStrategy
 
 from .slurm_install_strategy import UCCTestSlurmInstallStrategy
 from .template import UCCTest
 
 
-class UCCTestSlurmCommandGenStrategy(SlurmCommandGenStrategy):
+class UCCTestSlurmJobSpecGenStrategy(SlurmJobSpecGenStrategy):
     """Command generation strategy for UCC tests on Slurm systems."""
 
-    def gen_exec_command(
+    def prepare_job(
         self,
         env_vars: Dict[str, str],
         cmd_args: Dict[str, str],
