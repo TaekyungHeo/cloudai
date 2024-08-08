@@ -16,17 +16,17 @@
 
 from typing import Dict, List
 
-from cloudai import CommandGenStrategy
+from cloudai import JobSpecGenStrategy
 
 
-class SleepStandaloneCommandGenStrategy(CommandGenStrategy):
+class SleepStandaloneJobSpecGenStrategy(JobSpecGenStrategy):
     """
     Command generation strategy for the Sleep test on standalone systems.
 
     This strategy generates a command to execute a sleep operation with specified duration on standalone systems.
     """
 
-    def gen_exec_command(
+    def prepare_job(
         self,
         env_vars: Dict[str, str],
         cmd_args: Dict[str, str],

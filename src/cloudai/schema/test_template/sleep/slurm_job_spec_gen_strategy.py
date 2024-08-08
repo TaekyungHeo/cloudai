@@ -16,13 +16,13 @@
 
 from typing import Any, Dict, List
 
-from cloudai.systems.slurm.strategy import SlurmCommandGenStrategy
+from cloudai.systems.slurm.strategy import SlurmJobSpecGenStrategy
 
 
-class SleepSlurmCommandGenStrategy(SlurmCommandGenStrategy):
+class SleepSlurmJobSpecGenStrategy(SlurmJobSpecGenStrategy):
     """Command generation strategy for Sleep on Slurm systems."""
 
-    def gen_exec_command(
+    def prepare_job(
         self,
         env_vars: Dict[str, str],
         cmd_args: Dict[str, str],
