@@ -39,10 +39,15 @@ from cloudai.schema.test_template.jax_toolbox.report_generation_strategy import 
 from cloudai.schema.test_template.jax_toolbox.slurm_command_gen_strategy import JaxToolboxSlurmCommandGenStrategy
 from cloudai.schema.test_template.jax_toolbox.slurm_install_strategy import JaxToolboxSlurmInstallStrategy
 from cloudai.schema.test_template.jax_toolbox.template import JaxToolbox
-from cloudai.schema.test_template.nccl_test.grading_strategy import NcclTestGradingStrategy
-from cloudai.schema.test_template.nccl_test.report_generation_strategy import NcclTestReportGenerationStrategy
+from cloudai.schema.test_template.nccl_test.kubernetes_report_generation_strategy import (
+    KubernetesNcclTestReportGenerationStrategy,
+)
 from cloudai.schema.test_template.nccl_test.slurm_command_gen_strategy import NcclTestSlurmCommandGenStrategy
+from cloudai.schema.test_template.nccl_test.slurm_grading_strategy import SlurmNcclTestGradingStrategy
 from cloudai.schema.test_template.nccl_test.slurm_install_strategy import NcclTestSlurmInstallStrategy
+from cloudai.schema.test_template.nccl_test.slurm_report_generation_strategy import (
+    SlurmNcclTestReportGenerationStrategy,
+)
 from cloudai.schema.test_template.nccl_test.template import NcclTest
 from cloudai.schema.test_template.nemo_launcher.grading_strategy import NeMoLauncherGradingStrategy
 from cloudai.schema.test_template.nemo_launcher.report_generation_strategy import NeMoLauncherReportGenerationStrategy
@@ -95,10 +100,9 @@ def test_runners():
         ((CommandGenStrategy, SlurmSystem, Sleep), SleepSlurmCommandGenStrategy),
         ((CommandGenStrategy, SlurmSystem, UCCTest), UCCTestSlurmCommandGenStrategy),
         ((CommandGenStrategy, StandaloneSystem, Sleep), SleepStandaloneCommandGenStrategy),
-        ((JsonGenStrategy, KubernetesSystem, Sleep), SleepKubernetesJsonGenStrategy),
         ((GradingStrategy, SlurmSystem, ChakraReplay), ChakraReplayGradingStrategy),
         ((GradingStrategy, SlurmSystem, JaxToolbox), JaxToolboxGradingStrategy),
-        ((GradingStrategy, SlurmSystem, NcclTest), NcclTestGradingStrategy),
+        ((GradingStrategy, SlurmSystem, NcclTest), SlurmNcclTestGradingStrategy),
         ((GradingStrategy, SlurmSystem, NeMoLauncher), NeMoLauncherGradingStrategy),
         ((GradingStrategy, SlurmSystem, Sleep), SleepGradingStrategy),
         ((GradingStrategy, SlurmSystem, UCCTest), UCCTestGradingStrategy),
@@ -115,9 +119,11 @@ def test_runners():
         ((JobIdRetrievalStrategy, SlurmSystem, NeMoLauncher), NeMoLauncherSlurmJobIdRetrievalStrategy),
         ((JobIdRetrievalStrategy, SlurmSystem, UCCTest), SlurmJobIdRetrievalStrategy),
         ((JobIdRetrievalStrategy, StandaloneSystem, Sleep), StandaloneJobIdRetrievalStrategy),
+        ((JsonGenStrategy, KubernetesSystem, Sleep), SleepKubernetesJsonGenStrategy),
+        ((ReportGenerationStrategy, KubernetesSystem, NcclTest), KubernetesNcclTestReportGenerationStrategy),
         ((ReportGenerationStrategy, SlurmSystem, ChakraReplay), ChakraReplayReportGenerationStrategy),
         ((ReportGenerationStrategy, SlurmSystem, JaxToolbox), JaxToolboxReportGenerationStrategy),
-        ((ReportGenerationStrategy, SlurmSystem, NcclTest), NcclTestReportGenerationStrategy),
+        ((ReportGenerationStrategy, SlurmSystem, NcclTest), SlurmNcclTestReportGenerationStrategy),
         ((ReportGenerationStrategy, SlurmSystem, NeMoLauncher), NeMoLauncherReportGenerationStrategy),
         ((ReportGenerationStrategy, SlurmSystem, Sleep), SleepReportGenerationStrategy),
         ((ReportGenerationStrategy, SlurmSystem, UCCTest), UCCTestReportGenerationStrategy),
