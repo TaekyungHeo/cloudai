@@ -26,7 +26,6 @@ class SleepKubernetesJsonGenStrategy(JsonGenStrategy):
 
     def gen_json(
         self,
-        env_vars: Dict[str, str],
         cmd_args: Dict[str, str],
         extra_env_vars: Dict[str, str],
         extra_cmd_args: str,
@@ -35,7 +34,7 @@ class SleepKubernetesJsonGenStrategy(JsonGenStrategy):
         num_nodes: int,
         nodes: List[str],
     ) -> Dict[Any, Any]:
-        self.final_cmd_args = self._override_cmd_args(self.default_cmd_args, cmd_args)
+        self.final_cmd_args = self._override_cmd_args(self.cmd_args, cmd_args)
         sec = self.final_cmd_args["seconds"]
 
         kubernetes_system = cast(KubernetesSystem, self.system)

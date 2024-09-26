@@ -52,14 +52,12 @@ def slurm_system(tmp_path: Path) -> SlurmSystem:
 
 @pytest.fixture
 def slurm_install_strategy(slurm_system: SlurmSystem) -> SlurmInstallStrategy:
-    env_vars = {"TEST_VAR": "VALUE"}
-    cmd_args = {"docker_image_url": {"default": "http://example.com/docker_image"}}
-    strategy = SlurmInstallStrategy(slurm_system, env_vars, cmd_args)
+    strategy = SlurmInstallStrategy(slurm_system)
     return strategy
 
 
 def test_install_path_attribute(slurm_install_strategy: SlurmInstallStrategy, slurm_system: SlurmSystem):
-    assert slurm_install_strategy.install_path == slurm_system.install_path
+    assert slurm_install_strategy.system.install_path == slurm_system.install_path
 
 
 @pytest.fixture
@@ -76,7 +74,7 @@ def mock_docker_image_cache_manager(slurm_system: SlurmSystem):
 class TestNcclTestSlurmInstallStrategy:
     @pytest.fixture
     def strategy(self, slurm_system, mock_docker_image_cache_manager) -> NcclTestSlurmInstallStrategy:
-        strategy = NcclTestSlurmInstallStrategy(slurm_system, {}, {})
+        strategy = NcclTestSlurmInstallStrategy(slurm_system)
         strategy.docker_image_cache_manager = mock_docker_image_cache_manager
         return strategy
 
@@ -120,16 +118,7 @@ class TestNcclTestSlurmInstallStrategy:
 class TestNeMoLauncherSlurmInstallStrategy:
     @pytest.fixture
     def strategy(self, slurm_system, mock_docker_image_cache_manager) -> NeMoLauncherSlurmInstallStrategy:
-        strategy = NeMoLauncherSlurmInstallStrategy(
-            slurm_system,
-            {},
-            {
-                "repository_url": {"default": "https://github.com/NVIDIA/NeMo-Framework-Launcher.git"},
-                "repository_commit_hash": {"default": "cf411a9ede3b466677df8ee672bcc6c396e71e1a"},
-                "docker_image_url": {"default": "nvcr.io/nvidian/nemofw-training:24.01.01"},
-                "data_dir": {"default": "DATA_DIR"},
-            },
-        )
+        strategy = NeMoLauncherSlurmInstallStrategy(slurm_system)
         strategy.docker_image_cache_manager = mock_docker_image_cache_manager
         return strategy
 
@@ -204,7 +193,7 @@ class TestNeMoLauncherSlurmInstallStrategy:
 class TestUCCTestSlurmInstallStrategy:
     @pytest.fixture
     def strategy(self, slurm_system, mock_docker_image_cache_manager) -> UCCTestSlurmInstallStrategy:
-        strategy = UCCTestSlurmInstallStrategy(slurm_system, {}, {})
+        strategy = UCCTestSlurmInstallStrategy(slurm_system)
         strategy.docker_image_cache_manager = mock_docker_image_cache_manager
         return strategy
 

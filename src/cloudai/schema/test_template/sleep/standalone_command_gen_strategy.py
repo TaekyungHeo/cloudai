@@ -29,7 +29,6 @@ class SleepStandaloneCommandGenStrategy(CommandGenStrategy):
 
     def gen_exec_command(
         self,
-        env_vars: Dict[str, str],
         cmd_args: Dict[str, str],
         extra_env_vars: Dict[str, str],
         extra_cmd_args: str,
@@ -39,6 +38,6 @@ class SleepStandaloneCommandGenStrategy(CommandGenStrategy):
     ) -> str:
         if not nodes:
             nodes = []
-        self.final_cmd_args = self._override_cmd_args(self.default_cmd_args, cmd_args)
+        self.final_cmd_args = self._override_cmd_args(self.cmd_args, cmd_args)
         sec = self.final_cmd_args["seconds"]
         return f"sleep {sec}"
