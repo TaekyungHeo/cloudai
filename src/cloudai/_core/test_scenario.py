@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING, List, Optional
 
 if TYPE_CHECKING:
     from .test import Test
+from .plugin import Plugin
 
 
 @dataclass
@@ -32,6 +33,8 @@ class TestRun:
     output_path: Path = Path("")
     time_limit: Optional[str] = None
     job_name: str = ""
+    prologue: List[Plugin] = []
+    epilogue: List[Plugin] = []
 
 
 class TestScenario:

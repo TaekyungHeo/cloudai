@@ -161,6 +161,7 @@ class SlurmCommandGenStrategy(CommandGenStrategy):
 
         return batch_script_content
 
+    # TODO: pass test runs, and test runs will have plugins
     def _write_sbatch_script(
         self, args: Dict[str, Any], env_vars_str: str, srun_command: str, output_path: Path
     ) -> str:
@@ -184,7 +185,11 @@ class SlurmCommandGenStrategy(CommandGenStrategy):
 
         self._append_sbatch_directives(batch_script_content, args, output_path)
 
+        # TODO: Add prologue plugins
+
         batch_script_content.extend([env_vars_str, "", srun_command])
+
+        # TODO: Add epilogue plugins
 
         batch_script_path = output_path / "cloudai_sbatch_script.sh"
         with batch_script_path.open("w") as batch_file:

@@ -16,10 +16,11 @@
 
 import copy
 import sys
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 
 import toml
 
+from .plugin import Plugin
 from .system import System
 from .test import Test, TestDependency
 from .test_scenario import TestRun, TestScenario
@@ -74,10 +75,13 @@ class TestScenarioParser:
         job_status_check = data.get("job_status_check", True)
         raw_tests_data = data.get("Tests", {})
         tests_data = {f"Tests.{k}": v for k, v in raw_tests_data.items()}
+        prologue = self._parse_plugins(data.get("prologue", {}))
+        epilogue = self._parse_plugins(data.get("epilogue", {}))
 
         # Create section-specific test instances
         section_test_runs = {
-            section: self._create_section_test_run(section, info) for section, info in tests_data.items()
+            section: self._create_section_test_run(section, info, prologue, epilogue)
+            for section, info in tests_data.items()
         }
 
         total_weight = sum(test_info.get("weight", 0) for test_info in tests_data.values())
@@ -105,16 +109,26 @@ class TestScenarioParser:
                 tr.time_limit = test_info["time_limit"]
 
         return TestScenario(
-            name=test_scenario_name, test_runs=list(section_test_runs.values()), job_status_check=job_status_check
+            name=test_scenario_name,
+            test_runs=list(section_test_runs.values()),
+            job_status_check=job_status_check,
         )
 
-    def _create_section_test_run(self, section: str, test_info: Dict[str, Any]) -> TestRun:
+    def _create_section_test_run(
+        self,
+        section: str,
+        test_info: Dict[str, Any],
+        prologue: Optional[List[Plugin]],
+        epilogue: Optional[List[Plugin]],
+    ) -> TestRun:
         """
         Create a section-specific Test object by copying from the test mapping.
 
         Args:
             section (str): Section name of the test.
             test_info (Dict[str, Any]): Information of the test.
+            prologue (Optional[List[Plugin]]): List of plugins to execute before each test.
+            epilogue (Optional[List[Plugin]]): List of plugins to execute after each test.
 
         Returns:
             Test: Copied and updated Test object for the section.
@@ -152,6 +166,8 @@ class TestScenarioParser:
             test,
             num_nodes=int(test_info.get("num_nodes", 1)),
             nodes=test_info.get("nodes", []),
+            prologue=prologue if prologue is not None else [],
+            epilogue=epilogue if epilogue is not None else [],
         )
         return tr
 
@@ -188,3 +204,21 @@ class TestScenarioParser:
             # Else, skip if dep_details is empty
 
         return dependencies
+
+    def _parse_plugins(self, plugin_data: Dict[str, Any]) -> List[Plugin]:
+        """
+        Parse the prologue or epilogue plugin data.
+
+        Args:
+            plugin_data (Dict[str, Any]): Dictionary containing the plugin data.
+
+        Returns:
+            List[Plugin]: List of parsed Plugin objects.
+        """
+        plugins = []
+        tasks = plugin_data.get("task", [])
+        for task in tasks:
+            name = task.get("name", "")
+            command = task.get("command", "")
+            plugins.append(Plugin(name=name, command=command))
+        return plugins
