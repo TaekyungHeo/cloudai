@@ -15,6 +15,7 @@
 # limitations under the License.
 
 
+import os
 from typing import Any, Dict, List, cast
 
 from cloudai import TestRun
@@ -32,6 +33,11 @@ class NeMoRunSlurmCommandGenStrategy(SlurmCommandGenStrategy):
 
         tdef: NeMoRunTestDefinition = cast(NeMoRunTestDefinition, tr.test.test_definition)
         base_args.update({"image_path": tdef.docker_image.installed_path})
+        if tdef.cmd_args.recipe_path:
+            # TODO: update /opt/NeMo/nemo/collections/llm/recipes/__init__.py
+            target_recipe_path = f"/opt/NeMo/nemo/collections/llm/recipes/{os.path.basename(tdef.cmd_args.recipe_path)}"
+            container_mounts = f"{tdef.cmd_args.recipe_path}:{target_recipe_path}"
+            base_args["container_mounts"] = container_mounts
 
         return base_args
 

@@ -21,6 +21,7 @@ test_template_name = "NeMoRun"
 [cmd_args]
 "docker_image_url" = "nvcr.io/nvidia/nemo:24.09"
 "task" = "pretrain"
+"recipe_path" = ""
 "recipe_name" = "llama3_8b"
 
 [extra_cmd_args]

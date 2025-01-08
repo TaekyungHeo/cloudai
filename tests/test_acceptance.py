@@ -211,7 +211,10 @@ def test_req(request, slurm_system: SlurmSystem, partial_tr: partial[TestRun]) -
                     description=test_type,
                     test_template_name=test_type,
                     cmd_args=NeMoRunCmdArgs(
-                        docker_image_url="nvcr.io/nvidia/nemo:24.09", task="pretrain", recipe_name="llama_3b"
+                        docker_image_url="nvcr.io/nvidia/nemo:24.09",
+                        task="pretrain",
+                        recipe_path=None,
+                        recipe_name="llama_3b",
                     ),
                 ),
                 NeMoRunSlurmCommandGenStrategy,

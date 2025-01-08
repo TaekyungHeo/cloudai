@@ -25,6 +25,7 @@ class NeMoRunCmdArgs(CmdArgs):
 
     docker_image_url: str
     task: str
+    recipe_path: Optional[str]
     recipe_name: str
 
 

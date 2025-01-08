@@ -34,7 +34,7 @@ class TestNeMoRunSlurmCommandGenStrategy:
             description="desc1",
             test_template_name="tt",
             cmd_args=NeMoRunCmdArgs(
-                docker_image_url="nvcr.io/nvidia/nemo:24.09", task="pretrain", recipe_name="llama_3b"
+                docker_image_url="nvcr.io/nvidia/nemo:24.09", task="pretrain", recipe_path=None, recipe_name="llama_3b"
             ),
             extra_env_vars={"TEST_VAR_1": "value1"},
             extra_cmd_args={"extra_args": ""},
@@ -59,7 +59,12 @@ class TestNeMoRunSlurmCommandGenStrategy:
         "cmd_args, expected_cmd",
         [
             (
-                {"docker_image_url": "nvcr.io/nvidia/nemo:24.09", "task": "fine_tune", "recipe_name": "llama7_13b"},
+                {
+                    "docker_image_url": "nvcr.io/nvidia/nemo:24.09",
+                    "task": "fine_tune",
+                    "recipe_path": None,
+                    "recipe_name": "llama7_13b",
+                },
                 ["nemo", "llm", "fine_tune", "--factory", "llama7_13b", "-y", "trainer.num_nodes=2", "extra_args"],
             ),
         ],
@@ -90,3 +95,19 @@ class TestNeMoRunSlurmCommandGenStrategy:
 
         num_nodes_param = next(p for p in cmd if "trainer.num_nodes" in p)
         assert num_nodes_param == "trainer.num_nodes=3"
+
+    def test_parse_slurm_args_without_recipe_path(
+        self, cmd_gen_strategy: NeMoRunSlurmCommandGenStrategy, test_run: TestRun
+    ) -> None:
+        test_run.test.test_definition.cmd_args.recipe_path = None
+        base_args = cmd_gen_strategy._parse_slurm_args("test_job", {}, {}, test_run)
+        assert "container_mounts" not in base_args
+
+    def test_parse_slurm_args_with_recipe_path(
+        self, cmd_gen_strategy: NeMoRunSlurmCommandGenStrategy, test_run: TestRun
+    ) -> None:
+        recipe_path = "/some/recipe/path/model.py"
+        test_run.test.test_definition.cmd_args.recipe_path = recipe_path
+        base_args = cmd_gen_strategy._parse_slurm_args("test_job", {}, {}, test_run)
+        assert "container_mounts" in base_args
+        assert base_args["container_mounts"] == f"{recipe_path}:/opt/NeMo/nemo/collections/llm/recipes/model.py"
