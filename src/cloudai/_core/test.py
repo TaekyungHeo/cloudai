@@ -19,7 +19,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from pydantic import BaseModel, ConfigDict
 
-from .installables import GitRepo, Installable
+from .installables import GitRepo, Installable, PythonExecutable
 from .test_template import TestTemplate
 
 
@@ -139,6 +139,7 @@ class TestDefinition(BaseModel, ABC):
     extra_container_mounts: list[str] = []
     git_repos: list[GitRepo] = []
     nsys: Optional[NsysConfiguration] = None
+    predictor: Optional[PythonExecutable] = None
     agent: str = "grid_search"
     agent_steps: int = 1
 
