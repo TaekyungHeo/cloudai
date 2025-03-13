@@ -14,7 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from pathlib import Path
 from typing import Any, Dict, List, Union, cast
+
+import toml
 
 from cloudai import TestRun
 from cloudai.systems.slurm.strategy import SlurmCommandGenStrategy
@@ -26,8 +29,8 @@ class ChakraReplaySlurmCommandGenStrategy(SlurmCommandGenStrategy):
 
     def _container_mounts(self, tr: TestRun) -> list[str]:
         tdef: ChakraReplayTestDefinition = cast(ChakraReplayTestDefinition, tr.test.test_definition)
-        if tdef.cmd_args.trace_path:
-            return [f"{tdef.cmd_args.trace_path}:{tdef.cmd_args.trace_path}"]
+        if tdef.cmd_args.trace_dir:
+            return [f"{tdef.cmd_args.trace_dir}:{tdef.cmd_args.trace_dir}"]
         return []
 
     def _parse_slurm_args(
@@ -40,14 +43,38 @@ class ChakraReplaySlurmCommandGenStrategy(SlurmCommandGenStrategy):
 
         return base_args
 
+    def _filter_config_data(
+        self, cmd_args: Dict[str, Union[str, List[str]]]
+    ) -> Dict[str, Dict[str, Union[str, int, bool]]]:
+        config_data = {}
+
+        sections = {
+            "trace": {"directory": "trace_dir"},
+            "replay": {"warmup_iters": "warmup_iters", "iters": "iters"},
+            "profiler": {"enabled": "profiler.enabled"},
+            "backend": {"name": "backend.name"},
+            "logging": {"level": "logging.level"},
+            "git_repo": {"url": "git_repo.url", "commit": "git_repo.commit"},
+        }
+
+        for section, fields in sections.items():
+            section_data = {key: cmd_args[value] for key, value in fields.items() if value in cmd_args}
+            if section_data:
+                config_data[section] = section_data
+
+        return config_data
+
+    def _write_toml_config(self, cmd_args: Dict[str, Union[str, List[str]]], tr: TestRun) -> str:
+        config_path = Path("/tmp/chakra_replay_config.toml")
+        config_data = self._filter_config_data(cmd_args)
+
+        with config_path.open("w") as toml_file:
+            toml.dump(config_data, toml_file)
+
+        return str(config_path)
+
     def generate_test_command(
         self, env_vars: Dict[str, str], cmd_args: Dict[str, Union[str, List[str]]], tr: TestRun
     ) -> List[str]:
-        srun_command_parts = [
-            "comm_replay",
-            f'--trace-type {cmd_args["trace_type"]}',
-            f'--trace-path {cmd_args["trace_path"]}',
-            f'--num-replays {cmd_args["num_replays"]}',
-            tr.test.extra_cmd_args,
-        ]
-        return srun_command_parts
+        config_path = self._write_toml_config(cmd_args, tr)
+        return ["comm_replay", f"--config {config_path}"]
