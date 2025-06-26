@@ -168,7 +168,7 @@ class AIDynamoSlurmCommandGenStrategy(SlurmCommandGenStrategy):
     def _decode_block(self, td: AIDynamoTestDefinition, yaml_config_path: Path) -> List[str]:
         return [
             self._bg(
-                self._dynamo_cmd("components.worker:VllmWorker", yaml_config_path),
+                self._dynamo_cmd("components.worker:VllmDecodeWorker", yaml_config_path),
                 "decode_stdout_node${SLURM_NODEID}",
                 "decode_stderr_node${SLURM_NODEID}",
             ),
