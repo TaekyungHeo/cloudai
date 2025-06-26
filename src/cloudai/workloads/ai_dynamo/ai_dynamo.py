@@ -62,7 +62,7 @@ class VllmWorkerBaseArgs(BaseModel):
 
     num_nodes: Union[int, list[int]]
     enable_eager: bool = Field(True, alias="enable-eager")
-    service_args: dict = Field({"workers": 1, "resources": {"gpu": "1"}}, alias="ServiceArgs")
+    service_args: dict = Field({"workers": 1, "resources": {"gpu": "8"}}, alias="ServiceArgs")
     gpu_memory_utilization: float = Field(0.7, alias="gpu-memory-utilization")
 
 
