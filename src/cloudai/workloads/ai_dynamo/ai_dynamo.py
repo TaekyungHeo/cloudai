@@ -41,7 +41,7 @@ class FrontendArgs(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     served_model_name: str = "deepseek-ai/DeepSeek-R1-Distill-Llama-8B"
-    endpoint: str = "dynamo.SimpleLoadBalancer.generate"
+    endpoint: str = "dynamo.SimpleLoadBalancer.generate_disagg"
     port: int = 8000
     port_etcd: int = 2379
     port_nats: int = 4222
