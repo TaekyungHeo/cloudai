@@ -60,8 +60,8 @@ class VllmWorkerBaseArgs(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     num_nodes: Union[int, list[int]]
-    tensor_parallel_size: int = Field(16, alias="tensor-parallel-size")
-    service_args: dict = Field({"workers": 1, "resources": {"gpu": "16"}}, alias="ServiceArgs")
+    tensor_parallel_size: int = Field(8, alias="tensor-parallel-size")
+    service_args: dict = Field({"workers": 1, "resources": {"gpu": "8"}}, alias="ServiceArgs")
 
 
 class VllmPrefillWorkerArgs(VllmWorkerBaseArgs):
