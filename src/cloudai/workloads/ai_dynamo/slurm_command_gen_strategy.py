@@ -59,9 +59,9 @@ class AIDynamoSlurmCommandGenStrategy(SlurmCommandGenStrategy):
             ),
         }
 
-        base_config["SimpleLoadBalancer"]["common-configs"] = ["model", "kv_transfer_config", "served_model_name"]
-        base_config["VllmPrefillWorker"]["common-configs"] = ["model", "kv_transfer_config", "served_model_name"]
-        base_config["VllmDecodeWorker"]["common-configs"] = ["model", "kv_transfer_config", "served_model_name"]
+        base_config["SimpleLoadBalancer"]["common-configs"] = ["model", "kv-transfer-config", "served_model_name"]
+        base_config["VllmPrefillWorker"]["common-configs"] = ["model", "kv-transfer-config", "served_model_name"]
+        base_config["VllmDecodeWorker"]["common-configs"] = ["model", "kv-transfer-config", "served_model_name"]
 
         with open(yaml_path, "w") as yaml_file:
             yaml.dump(base_config, yaml_file, default_flow_style=False)
