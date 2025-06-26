@@ -132,7 +132,7 @@ class AIDynamoSlurmCommandGenStrategy(SlurmCommandGenStrategy):
             self._bg(self._etcd_cmd(td.cmd_args.dynamo.frontend.port_etcd), "etcd_stdout", "etcd_stderr"),
             self._bg(self._nats_cmd(), "nats_stdout", "nats_stderr"),
             self._bg(
-                self._dynamo_cmd("graphs.simple_load_balancer:Frontend", yaml_config_path),
+                self._dynamo_cmd("graphs.agg_router:Frontend", yaml_config_path),
                 "frontend_stdout",
                 "frontend_stderr",
             ),
@@ -157,7 +157,7 @@ class AIDynamoSlurmCommandGenStrategy(SlurmCommandGenStrategy):
     def _prefill_block(self, td: AIDynamoTestDefinition, yaml_config_path: Path) -> List[str]:
         return [
             self._bg(
-                self._dynamo_cmd("components.vllm_worker:VllmPrefillWorker", yaml_config_path),
+                self._dynamo_cmd("components.prefill_worker:PrefillWorker", yaml_config_path),
                 "prefill_stdout_node${SLURM_NODEID}",
                 "prefill_stderr_node${SLURM_NODEID}",
             ),
@@ -170,7 +170,7 @@ class AIDynamoSlurmCommandGenStrategy(SlurmCommandGenStrategy):
     def _decode_block(self, td: AIDynamoTestDefinition, yaml_config_path: Path) -> List[str]:
         return [
             self._bg(
-                self._dynamo_cmd("components.vllm_worker:VllmDecodeWorker", yaml_config_path),
+                self._dynamo_cmd("components.worker:VllmWorker", yaml_config_path),
                 "decode_stdout_node${SLURM_NODEID}",
                 "decode_stderr_node${SLURM_NODEID}",
             ),
