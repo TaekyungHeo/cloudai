@@ -30,7 +30,7 @@ class CommonConfig(BaseModel):
 
     model: str
     kv_transfer_config: Dict[str, str] = Field(
-        {"kv_connector": "NixlConnector", "kv_role": "kv_both"}, alias="kv_transfer_config"
+        {"kv_connector": "NixlConnector", "kv_role": "kv_both"}, alias="kv-transfer-config"
     )
     served_model_name: str
 
