@@ -40,6 +40,7 @@ class FrontendArgs(BaseModel):
 
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
+    served_model_name: str = "deepseek-ai/DeepSeek-R1-Distill-Llama-8B"
     endpoint: str = "dynamo.SimpleLoadBalancer.generate"
     port: int = 8000
     port_etcd: int = 2379
@@ -60,8 +61,8 @@ class VllmWorkerBaseArgs(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     num_nodes: Union[int, list[int]]
-    tensor_parallel_size: int = Field(8, alias="tensor-parallel-size")
-    service_args: dict = Field({"workers": 1, "resources": {"gpu": "8"}}, alias="ServiceArgs")
+    enable_eager: bool = Field(True, alias="enable-eager")
+    service_args: dict = Field({"workers": 1, "resources": {"gpu": "1"}}, alias="ServiceArgs")
 
 
 class VllmPrefillWorkerArgs(VllmWorkerBaseArgs):

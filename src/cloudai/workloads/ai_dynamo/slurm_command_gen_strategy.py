@@ -59,8 +59,6 @@ class AIDynamoSlurmCommandGenStrategy(SlurmCommandGenStrategy):
             ),
         }
 
-        # Add common-configs with new list instances each time
-        base_config["Frontend"]["common-configs"] = ["served_model_name"]
         base_config["SimpleLoadBalancer"]["common-configs"] = ["model", "kv_transfer_config", "served_model_name"]
         base_config["VllmPrefillWorker"]["common-configs"] = ["model", "kv_transfer_config", "served_model_name"]
         base_config["VllmDecodeWorker"]["common-configs"] = ["model", "kv_transfer_config", "served_model_name"]
