@@ -15,7 +15,7 @@
 # limitations under the License.
 
 from pathlib import Path
-from typing import Dict, List, Optional, Union, Any
+from typing import Dict, List, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -29,6 +29,7 @@ class CommonConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     model: str
+    kv_transfer_config: Dict[str, str] = Field({}, alias="kv-transfer-config")
     served_model_name: str
 
 
