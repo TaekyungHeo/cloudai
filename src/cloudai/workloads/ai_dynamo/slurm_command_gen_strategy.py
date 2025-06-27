@@ -180,7 +180,7 @@ class AIDynamoSlurmCommandGenStrategy(SlurmCommandGenStrategy):
 
     def _dynamo_cmd(self, module: str, config: Path, service_name: Optional[str] = None) -> str:
         svc = f"--service-name {service_name} " if service_name else ""
-        return f"dynamo serve {module} -f {config} {svc}"
+        return f"cd /workspace/examples/vllm_v1 && dynamo serve {module} -f {config} {svc}"
 
     def _bg(self, cmd: str, stdout_tag: str, stderr_tag: str) -> str:
         return f"{cmd} > /cloudai_run_results/{stdout_tag}.txt 2> /cloudai_run_results/{stderr_tag}.txt &"
