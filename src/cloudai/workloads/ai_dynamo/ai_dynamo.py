@@ -29,9 +29,6 @@ class CommonConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     model: str
-    kv_transfer_config: Dict[str, str] = Field(
-        {"kv_connector": "NixlConnector", "kv_role": "kv_both"}, alias="kv-transfer-config"
-    )
     served_model_name: str
 
 
@@ -61,7 +58,7 @@ class VllmWorkerBaseArgs(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
     num_nodes: Union[int, list[int]]
-    service_args: dict = Field({"workers": 1, "resources": {"gpu": "1"}}, alias="ServiceArgs")
+    service_args: dict = Field({"workers": 1, "resources": {"gpu": "8"}}, alias="ServiceArgs")
     gpu_memory_utilization: float = Field(0.7, alias="gpu-memory-utilization")
     tensor_parallel_size: int = Field(8, alias="tensor-parallel-size")
     pipeline_parallel_size: int = Field(1, alias="pipeline-parallel-size")
