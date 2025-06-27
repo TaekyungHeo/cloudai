@@ -64,6 +64,8 @@ class VllmWorkerBaseArgs(BaseModel):
     enable_eager: bool = Field(True, alias="enable-eager")
     service_args: dict = Field({"workers": 1, "resources": {"gpu": "1"}}, alias="ServiceArgs")
     gpu_memory_utilization: float = Field(0.7, alias="gpu-memory-utilization")
+    tensor_parallel_size: int = Field(8, alias="tensor-parallel-size")
+    pipeline_parallel_size: int = Field(1, alias="pipeline-parallel-size")
 
 
 class VllmPrefillWorkerArgs(VllmWorkerBaseArgs):
