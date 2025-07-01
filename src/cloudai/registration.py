@@ -85,6 +85,10 @@ def register_all():
         NIXLBenchSummaryReport,
         NIXLBenchTestDefinition,
     )
+    from cloudai.workloads.sglang import (
+        SGLangSlurmCommandGenStrategy,
+        SGLangTestDefinition,
+    )
     from cloudai.workloads.sleep import (
         SleepGradingStrategy,
         SleepKubernetesJsonGenStrategy,
@@ -170,10 +174,10 @@ def register_all():
     Registry().add_strategy(
         CommandGenStrategy, [SlurmSystem], [TritonInferenceTestDefinition], TritonInferenceSlurmCommandGenStrategy
     )
-
     Registry().add_strategy(
         CommandGenStrategy, [SlurmSystem], [AIDynamoTestDefinition], AIDynamoSlurmCommandGenStrategy
     )
+    Registry().add_strategy(CommandGenStrategy, [SlurmSystem], [SGLangTestDefinition], SGLangSlurmCommandGenStrategy)
 
     Registry().add_installer("slurm", SlurmInstaller)
     Registry().add_installer("standalone", StandaloneInstaller)
@@ -201,6 +205,7 @@ def register_all():
     Registry().add_test_definition("TritonInference", TritonInferenceTestDefinition)
     Registry().add_test_definition("NIXLBench", NIXLBenchTestDefinition)
     Registry().add_test_definition("AIDynamo", AIDynamoTestDefinition)
+    Registry().add_test_definition("SGLang", SGLangTestDefinition)
 
     Registry().add_agent("grid_search", GridSearchAgent)
 

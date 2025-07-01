@@ -63,6 +63,7 @@ from cloudai.workloads.nixl_bench import (
     NIXLBenchSummaryReport,
     NIXLBenchTestDefinition,
 )
+from cloudai.workloads.sglang import SGLangSlurmCommandGenStrategy, SGLangTestDefinition
 from cloudai.workloads.sleep import (
     SleepGradingStrategy,
     SleepKubernetesJsonGenStrategy,
@@ -120,6 +121,7 @@ ALL_STRATEGIES = {
     (CommandGenStrategy, LSFSystem, SleepTestDefinition): SleepLSFCommandGenStrategy,
     (CommandGenStrategy, SlurmSystem, TritonInferenceTestDefinition): TritonInferenceSlurmCommandGenStrategy,
     (CommandGenStrategy, SlurmSystem, NIXLBenchTestDefinition): NIXLBenchSlurmCommandGenStrategy,
+    (CommandGenStrategy, SlurmSystem, SGLangTestDefinition): SGLangSlurmCommandGenStrategy,
     (GradingStrategy, SlurmSystem, ChakraReplayTestDefinition): ChakraReplayGradingStrategy,
     (GradingStrategy, SlurmSystem, GPTTestDefinition): JaxToolboxGradingStrategy,
     (GradingStrategy, SlurmSystem, GrokTestDefinition): JaxToolboxGradingStrategy,
@@ -160,7 +162,7 @@ def test_installers():
 
 def test_definitions():
     test_defs = Registry().test_definitions_map
-    assert len(test_defs) == 14
+    assert len(test_defs) == 15
     for tdef in [
         ("UCCTest", UCCTestDefinition),
         ("NcclTest", NCCLTestDefinition),
@@ -176,6 +178,7 @@ def test_definitions():
         ("TritonInference", TritonInferenceTestDefinition),
         ("NIXLBench", NIXLBenchTestDefinition),
         ("AIDynamo", AIDynamoTestDefinition),
+        ("SGLang", SGLangTestDefinition),
     ]:
         assert test_defs[tdef[0]] == tdef[1]
 
