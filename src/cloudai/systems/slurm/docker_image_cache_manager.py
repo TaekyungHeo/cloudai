@@ -16,13 +16,14 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import shutil
 import subprocess
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Tuple
 
 if TYPE_CHECKING:
     from cloudai.systems.slurm import SlurmSystem
@@ -120,6 +121,54 @@ class DockerImageCacheManager:
     def __init__(self, system: SlurmSystem) -> None:
         self.system = system
 
+    def _parse_image_url(self, docker_image_url: str) -> Tuple[str, str]:
+        """Parse docker image URL to separate repository and tag/hash."""
+        if "@" in docker_image_url:  # Handle digest format
+            base, tag = docker_image_url.split("@", 1)
+            return base, tag
+        elif ":" in docker_image_url:  # Handle tag format
+            base, tag = docker_image_url.rsplit(":", 1)
+            return base, tag
+        return docker_image_url, "latest"  # Default to latest
+
+    def _is_digest_tag(self, tag: str) -> bool:
+        """Check if the tag is a digest (SHA256)."""
+        return tag.startswith("sha256:")
+
+    def _get_image_digest(self, docker_image_url: str) -> Optional[str]:
+        """Get the current digest that a tag points to using enroot."""
+        try:
+            # Use enroot to get image manifest
+            cmd = f"enroot manifest docker://{docker_image_url}"
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True)
+
+            # Parse the manifest to get the digest
+            manifest = json.loads(result.stdout)
+            if "config" in manifest and "digest" in manifest["config"]:
+                return manifest["config"]["digest"]
+            return None
+        except (subprocess.CalledProcessError, json.JSONDecodeError) as e:
+            logging.error(f"Failed to get image digest for {docker_image_url}: {e!s}")
+            return None
+
+    def _save_cache_metadata(self, docker_image_path: Path, digest: str) -> None:
+        """Save metadata including image digest."""
+        metadata_path = docker_image_path.with_suffix(".meta")
+        metadata = {"digest": digest, "cached_at": str(datetime.now())}
+        with metadata_path.open("w") as f:
+            json.dump(metadata, f)
+
+    def _get_cache_metadata(self, docker_image_path: Path) -> Optional[dict]:
+        """Get metadata for cached docker image."""
+        metadata_path = docker_image_path.with_suffix(".meta")
+        if not metadata_path.exists():
+            return None
+        try:
+            with metadata_path.open("r") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, IOError):
+            return None
+
     def ensure_docker_image(self, docker_image_url: str, docker_image_filename: str) -> DockerImageCacheResult:
         """
         Ensure the Docker image exists by checking and optionally caching it.
@@ -140,9 +189,65 @@ class DockerImageCacheManager:
 
         return image_check_result
 
+    def validate_image_digest(self, docker_image_url: str, docker_image_path: Path) -> DockerImageCacheResult:
+        """
+        Validate that a cached image matches its remote digest.
+
+        For digest tags: just check if file exists
+        For named tags: check if the digest matches current remote digest
+
+        Args:
+            docker_image_url (str): URL of the Docker image.
+            docker_image_path (Path): Path to the cached image.
+
+        Returns:
+            DockerImageCacheResult: Result of the digest validation.
+        """
+        _, tag = self._parse_image_url(docker_image_url)
+
+        # For digest tags, just check if file exists
+        if self._is_digest_tag(tag):
+            if docker_image_path.is_file() and docker_image_path.exists():
+                return DockerImageCacheResult(
+                    True,
+                    docker_image_path.absolute(),
+                    f"Cached Docker image exists for digest tag at {docker_image_path}.",
+                )
+            return DockerImageCacheResult(False, Path(), f"Docker image not found at {docker_image_path}.")
+
+        # For named tags, check if digest matches
+        if docker_image_path.is_file() and docker_image_path.exists():
+            metadata = self._get_cache_metadata(docker_image_path)
+            if not metadata or "digest" not in metadata:
+                return DockerImageCacheResult(
+                    False, Path(), f"No digest metadata found for cached image at {docker_image_path}."
+                )
+
+            cached_digest = metadata["digest"]
+            current_digest = self._get_image_digest(docker_image_url)
+
+            if current_digest is None:
+                # If we can't get current digest, use cached version but log warning
+                logging.warning(f"Could not verify remote image digest for {docker_image_url}. Using cached version.")
+                return DockerImageCacheResult(
+                    True, docker_image_path.absolute(), "Using cached version (digest check failed)."
+                )
+
+            if cached_digest != current_digest:
+                return DockerImageCacheResult(
+                    False, Path(), f"Digest mismatch for {docker_image_url}. Cache needs refresh."
+                )
+
+            return DockerImageCacheResult(True, docker_image_path.absolute(), "Cached image digest matches remote.")
+
+        return DockerImageCacheResult(False, Path(), f"Docker image not found at {docker_image_path}.")
+
     def check_docker_image_exists(self, docker_image_url: str, docker_image_filename: str) -> DockerImageCacheResult:
         """
-        Check if the Docker image exists without caching it.
+        Check if the Docker image exists and is valid.
+
+        Basic existence check for installer compatibility. For digest validation,
+        use validate_image_digest().
 
         Args:
             docker_image_url (str): URL or file path of the Docker image.
@@ -158,33 +263,29 @@ class DockerImageCacheManager:
             f"cache_docker_images_locally={self.system.cache_docker_images_locally}"
         )
 
-        # If not caching locally, return True. Defer checking URL accessibility to srun.
         if not self.system.cache_docker_images_locally:
             return DockerImageCacheResult(True, None, "")
 
         docker_image_path = Path(docker_image_url)
         if docker_image_path.is_file() and docker_image_path.exists():
             return DockerImageCacheResult(
-                True,
-                docker_image_path.absolute(),
-                f"Docker image file path is valid: {docker_image_url}.",
+                True, docker_image_path.absolute(), f"Docker image file path is valid: {docker_image_url}."
             )
 
-        # Check if the cache file exists
         if not self.system.install_path.exists():
             message = f"Install path {self.system.install_path.absolute()} does not exist."
             logging.debug(message)
             return DockerImageCacheResult(False, Path(), message)
 
         docker_image_path = self.system.install_path / docker_image_filename
+
+        # Basic existence check for installer compatibility
         if docker_image_path.is_file() and docker_image_path.exists():
             message = f"Cached Docker image already exists at {docker_image_path}."
             logging.debug(message)
             return DockerImageCacheResult(True, docker_image_path.absolute(), message)
 
-        message = f"Docker image does not exist at the specified path: {docker_image_path}."
-        logging.debug(message)
-        return DockerImageCacheResult(False, Path(), message)
+        return DockerImageCacheResult(False, Path(), f"Docker image not found at {docker_image_path}.")
 
     def _import_docker_image(
         self, srun_prefix: str, docker_image_url: str, docker_image_path: Path
@@ -212,7 +313,6 @@ class DockerImageCacheManager:
                 return DockerImageCacheResult(False, Path(), error_message)
 
             success_message = f"Docker image cached successfully at {docker_image_path}."
-            logging.debug(success_message)
             logging.debug(f"Command used: {enroot_import_cmd}, stdout: {p.stdout}, stderr: {p.stderr}")
             return DockerImageCacheResult(True, docker_image_path.absolute(), success_message)
         except subprocess.CalledProcessError as e:
@@ -222,24 +322,31 @@ class DockerImageCacheManager:
             logging.debug(error_message)
             return DockerImageCacheResult(False, message=error_message)
 
-    def cache_docker_image(self, docker_image_url: str, docker_image_filename: str) -> DockerImageCacheResult:
-        """
-        Cache the Docker image locally using enroot import.
+    def _check_cache_validity(
+        self, docker_image_path: Path, docker_image_url: str, tag: str
+    ) -> Optional[DockerImageCacheResult]:
+        """Check if existing cache is valid based on digest."""
+        if not self._is_digest_tag(tag) and docker_image_path.is_file():
+            metadata = self._get_cache_metadata(docker_image_path)
+            if metadata and "digest" in metadata:
+                current_digest = self._get_image_digest(docker_image_url)
+                if current_digest and metadata["digest"] == current_digest:
+                    success_message = f"Cached Docker image is up to date at {docker_image_path}."
+                    logging.info(success_message)
+                    return DockerImageCacheResult(True, docker_image_path.absolute(), success_message)
+                # If digests don't match, remove the stale cache
+                if docker_image_path.exists():
+                    docker_image_path.unlink()
+        return None
 
-        Args:
-            docker_image_url (str): URL of the Docker image.
-            docker_image_filename (str): Docker image filename.
-
-        Returns:
-            DockerImageCacheResult: Result of the Docker image caching operation.
-        """
-        docker_image_path = self.system.install_path / docker_image_filename
-
+    def _check_existing_cache(self, docker_image_path: Path) -> Optional[DockerImageCacheResult]:
         if docker_image_path.is_file():
             success_message = f"Cached Docker image already exists at {docker_image_path}."
             logging.info(success_message)
             return DockerImageCacheResult(True, docker_image_path.absolute(), success_message)
+        return None
 
+    def _check_system_requirements(self) -> Optional[DockerImageCacheResult]:
         if not self.system.install_path.exists():
             error_message = f"Install path {self.system.install_path.absolute()} does not exist."
             logging.error(error_message)
@@ -254,7 +361,9 @@ class DockerImageCacheManager:
             error_message = f"No permission to write in install path {self.system.install_path}."
             logging.error(error_message)
             return DockerImageCacheResult(False, Path(), error_message)
+        return None
 
+    def _build_srun_prefix(self) -> str:
         srun_prefix = f"srun --export=ALL --partition={self.system.default_partition}"
         if self.system.account:
             srun_prefix += f" --account={self.system.account}"
@@ -262,8 +371,49 @@ class DockerImageCacheManager:
             srun_prefix += " --gres=gpu:1"
         if self.system.extra_srun_args:
             srun_prefix += f" {self.system.extra_srun_args}"
+        return srun_prefix
 
-        return self._import_docker_image(srun_prefix, docker_image_url, docker_image_path)
+    def _handle_import_result(
+        self, result: DockerImageCacheResult, tag: str, docker_image_url: str, current_digest: Optional[str] = None
+    ) -> DockerImageCacheResult:
+        if result.success and not self._is_digest_tag(tag) and result.docker_image_path:
+            if current_digest is None:
+                current_digest = self._get_image_digest(docker_image_url)
+            if current_digest:
+                self._save_cache_metadata(result.docker_image_path, current_digest)
+        return result
+
+    def cache_docker_image(self, docker_image_url: str, docker_image_filename: str) -> DockerImageCacheResult:
+        """
+        Cache the Docker image locally using enroot import.
+
+        Args:
+            docker_image_url (str): URL of the Docker image.
+            docker_image_filename (str): Docker image filename.
+
+        Returns:
+            DockerImageCacheResult: Result of the Docker image caching operation.
+        """
+        docker_image_path = self.system.install_path / docker_image_filename
+        _, tag = self._parse_image_url(docker_image_url)
+
+        current_digest = None
+        if not self._is_digest_tag(tag):
+            current_digest = self._get_image_digest(docker_image_url)
+
+        if result := self._check_cache_validity(docker_image_path, docker_image_url, tag):
+            return result
+
+        if result := self._check_existing_cache(docker_image_path):
+            return result
+
+        if result := self._check_system_requirements():
+            return result
+
+        srun_prefix = self._build_srun_prefix()
+        result = self._import_docker_image(srun_prefix, docker_image_url, docker_image_path)
+
+        return self._handle_import_result(result, tag, docker_image_url, current_digest)
 
     def _check_prerequisites(self) -> PrerequisiteCheckResult:
         """
