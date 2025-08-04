@@ -69,10 +69,18 @@ def test_ensure_docker_image_url_cache_enabled(mock_access, mock_exists, mock_is
 @patch("os.access")
 @patch("subprocess.run")
 @patch("cloudai.systems.slurm.docker_image_cache_manager.DockerImageCacheManager._check_prerequisites")
+@patch("cloudai.systems.slurm.docker_image_cache_manager.DockerImageCacheManager._get_image_digest")
 def test_cache_docker_image(
-    mock_check_prerequisites, mock_run, mock_access, mock_exists, mock_is_file, slurm_system: SlurmSystem
+    mock_get_digest,
+    mock_check_prerequisites,
+    mock_run,
+    mock_access,
+    mock_exists,
+    mock_is_file,
+    slurm_system: SlurmSystem,
 ):
     manager = DockerImageCacheManager(slurm_system)
+    mock_get_digest.return_value = "sha256:test_digest"
 
     # Test when cached file already exists
     mock_is_file.return_value = True
@@ -83,11 +91,13 @@ def test_cache_docker_image(
 
     # Test creating subdirectory when it doesn't exist
     mock_is_file.return_value = False
-    mock_exists.side_effect = [
-        True,
-        False,
-        True,
-    ]  # install_path exists, subdir_path does not, install_path again
+    mock_exists.side_effect = [True, True]  # Both checks should pass
+    mock_access.return_value = True
+    mock_check_prerequisites.return_value = PrerequisiteCheckResult(True, "All prerequisites are met.")
+    mock_run.return_value = subprocess.CompletedProcess(args=["cmd"], returncode=0, stderr="")
+
+    # Create the install directory
+    slurm_system.install_path.mkdir(parents=True, exist_ok=True)
     result = manager.cache_docker_image("docker.io/hello-world", "image.tar.gz")
 
     # Ensure prerequisites are always met for the following tests
@@ -199,6 +209,20 @@ def test_ensure_docker_image_no_local_cache(slurm_system: SlurmSystem):
 
 
 @pytest.mark.parametrize(
+    "docker_image_url,expected_base,expected_tag",
+    [
+        ("nvcr.io/nvidia/pytorch:23.12-py3", "nvcr.io/nvidia/pytorch", "23.12-py3"),
+        ("docker.io/hello-world", "docker.io/hello-world", "latest"),
+    ],
+)
+def test_parse_image_url(docker_image_url, expected_base, expected_tag, slurm_system: SlurmSystem):
+    manager = DockerImageCacheManager(slurm_system)
+    base, tag = manager._parse_image_url(docker_image_url)
+    assert base == expected_base
+    assert tag == expected_tag
+
+
+@pytest.mark.parametrize(
     "account, supports_gpu_directives", [(None, False), ("test_account", True), (None, False), ("test_account", True)]
 )
 def test_docker_import_with_extra_system_config(
@@ -211,7 +235,11 @@ def test_docker_import_with_extra_system_config(
     manager = DockerImageCacheManager(slurm_system)
     manager._check_prerequisites = lambda: PrerequisiteCheckResult(True, "All prerequisites are met.")
 
-    with patch("subprocess.run") as mock_run:
+    with (
+        patch("subprocess.run") as mock_run,
+        patch.object(manager, "_get_image_digest", return_value="sha256:test_digest"),
+    ):
+        mock_run.return_value = subprocess.CompletedProcess(args=["cmd"], returncode=0, stderr="")
         res = manager.cache_docker_image("docker.io/hello-world", "docker_image.sqsh")
         assert res.success
 
@@ -247,7 +275,10 @@ def test_docker_import_with_extra_srun_args(slurm_system: SlurmSystem):
     manager = DockerImageCacheManager(slurm_system)
     manager._check_prerequisites = lambda: PrerequisiteCheckResult(True, "All prerequisites are met.")
 
-    with patch("subprocess.run") as mock_run:
+    with (
+        patch("subprocess.run") as mock_run,
+        patch.object(manager, "_get_image_digest", return_value="sha256:test_digest"),
+    ):
         mock_run.return_value = subprocess.CompletedProcess(args=["cmd"], returncode=0, stderr="")
         res = manager.cache_docker_image("docker.io/hello-world", "docker_image.sqsh")
         assert res.success

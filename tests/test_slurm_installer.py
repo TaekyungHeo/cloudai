@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
+from datetime import datetime
 from pathlib import Path
 from subprocess import CompletedProcess
 from typing import cast
@@ -75,7 +77,15 @@ class TestInstallOneDocker:
         cached_file = installer.system.install_path / d.cache_filename
         cached_file.touch()
 
-        res = installer.is_installed_one(d)
+        # Create metadata file with valid digest
+        metadata_file = cached_file.with_suffix(".meta")
+        metadata = {"digest": "sha256:test_digest", "cached_at": str(datetime.now())}
+        with metadata_file.open("w") as f:
+            json.dump(metadata, f)
+
+        # Mock the digest verification
+        with patch.object(installer.docker_image_cache_manager, "_get_image_digest", return_value="sha256:test_digest"):
+            res = installer.is_installed_one(d)
 
         assert res.success
         assert res.message == f"Cached Docker image already exists at {cached_file}."
