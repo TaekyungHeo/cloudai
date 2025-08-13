@@ -138,10 +138,14 @@ class AIDynamoSlurmCommandGenStrategy(SlurmCommandGenStrategy):
         requested_nodes, node_list = self.system.get_nodes_by_spec(self.test_run.nnodes, self.test_run.nodes)
 
         if prefill_nodes or decode_nodes:
-            self._validate_worker_nodes(node_list, prefill_nodes, prefill_n, "prefill")
-            self._validate_worker_nodes(node_list, decode_nodes, decode_n, "decode")
-            if prefill_nodes and decode_nodes:
-                self._validate_node_overlap(prefill_nodes, decode_nodes)
+            # Convert list[str] to comma-separated string for validation
+            prefill_nodes_str = ",".join(prefill_nodes) if prefill_nodes else None
+            decode_nodes_str = ",".join(decode_nodes) if decode_nodes else None
+
+            self._validate_worker_nodes(node_list, prefill_nodes_str, prefill_n, "prefill")
+            self._validate_worker_nodes(node_list, decode_nodes_str, decode_n, "decode")
+            if prefill_nodes_str and decode_nodes_str:
+                self._validate_node_overlap(prefill_nodes_str, decode_nodes_str)
 
         if total_nodes > requested_nodes:
             raise ValueError(
